@@ -30,7 +30,20 @@ jobs:
       - name: Lint with ruff
         run: |
           ruff check src tests
+          ruff format --check src tests
+
+      - name: Type checking with mypy
+        run: |
+          mypy src
 
       - name: Run pytest
         run: |
           pytest -v
+
+      - name: Run smoke test
+        run: |
+          bash scripts/smoke.sh
+
+      - name: Build container image
+        run: |
+          docker build -t workspace-sync-engine:test .
