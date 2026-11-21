@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -40,7 +41,7 @@ class Actor(BaseModel):
     name: str
     actor_type: ActorType
     role: str = "member"
-    authority_token: Optional[str] = None
+    authority_token: str | None = None
 
 
 class WorkItem(BaseModel):
@@ -51,11 +52,11 @@ class WorkItem(BaseModel):
     description: str = ""
     status: ItemStatus = ItemStatus.TODO
     priority: ItemPriority = ItemPriority.MEDIUM
-    assignee_id: Optional[str] = None
+    assignee_id: str | None = None
     version: int = 1
-    created_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
-    updated_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
+    updated_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class Mutation(BaseModel):
@@ -63,11 +64,11 @@ class Mutation(BaseModel):
     workspace_id: str
     item_id: str
     mutation_type: MutationType
-    patch: Dict[str, Any] = Field(default_factory=dict)
-    expected_version: Optional[int] = None
+    patch: dict[str, Any] = Field(default_factory=dict)
+    expected_version: int | None = None
     actor: Actor
-    rationale: Optional[str] = None
-    timestamp: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
+    rationale: str | None = None
+    timestamp: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
 
 
 class AuditEvent(BaseModel):
@@ -77,12 +78,12 @@ class AuditEvent(BaseModel):
     actor_id: str
     actor_type: ActorType
     action: MutationType
-    previous_state: Optional[Dict[str, Any]] = None
-    new_state: Optional[Dict[str, Any]] = None
-    rationale: Optional[str] = None
+    previous_state: dict[str, Any] | None = None
+    new_state: dict[str, Any] | None = None
+    rationale: str | None = None
     prev_hash: str
     curr_hash: str
-    timestamp: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
+    timestamp: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
 
 
 class CDCEvent(BaseModel):
@@ -92,7 +93,7 @@ class CDCEvent(BaseModel):
     entity_type: str = "work_item"
     entity_id: str
     op: MutationType
-    before: Optional[Dict[str, Any]] = None
-    after: Optional[Dict[str, Any]] = None
+    before: dict[str, Any] | None = None
+    after: dict[str, Any] | None = None
     actor: Actor
-    timestamp: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
+    timestamp: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))

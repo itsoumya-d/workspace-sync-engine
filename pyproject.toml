@@ -32,6 +32,10 @@ dev = [
 line-length = 100
 target-version = "py311"
 
+[tool.ruff.lint]
+ignore = ["B008", "PYI034", "PYI036"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["src"]

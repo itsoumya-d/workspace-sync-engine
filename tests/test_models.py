@@ -1,9 +1,6 @@
-import pytest
 from workspace_sync_engine.models import (
     Actor,
     ActorType,
-    AuditEvent,
-    CDCEvent,
     ItemPriority,
     ItemStatus,
     Mutation,

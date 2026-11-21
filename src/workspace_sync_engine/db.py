@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import datetime as dt
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from workspace_sync_engine.models import (
     CDCEvent,
@@ -17,19 +17,17 @@ from workspace_sync_engine.models import (
 
 class ConcurrencyConflictError(Exception):
     """Raised when expected version does not match current state version."""
-    pass
 
 
 class NotFoundError(Exception):
     """Raised when an entity is not found."""
-    pass
 
 
 class TransactionContext:
     def __init__(self, db: DatabaseSession) -> None:
         self.db = db
-        self.snapshot_items: Dict[str, Dict[str, WorkItem]] = {}
-        self.pending_outbox: List[CDCEvent] = []
+        self.snapshot_items: dict[str, dict[str, WorkItem]] = {}
+        self.pending_outbox: list[CDCEvent] = []
 
     async def __aenter__(self) -> TransactionContext:
         await self.db.acquire_lock()
@@ -58,10 +56,10 @@ class DatabaseSession:
     def __init__(self, max_connections: int = 20) -> None:
         self.max_connections = max_connections
         self._lock = asyncio.Lock()
-        self._items: Dict[str, Dict[str, WorkItem]] = {}  # workspace_id -> {item_id -> WorkItem}
-        self._outbox: List[CDCEvent] = []
+        self._items: dict[str, dict[str, WorkItem]] = {}  # workspace_id -> {item_id -> WorkItem}
+        self._outbox: list[CDCEvent] = []
         self._sequence_counter = 1
-        self._query_plan_log: List[Dict[str, Any]] = []
+        self._query_plan_log: list[dict[str, Any]] = []
 
     async def acquire_lock(self) -> None:
         await self._lock.acquire()
@@ -72,7 +70,7 @@ class DatabaseSession:
     def transaction(self) -> TransactionContext:
         return TransactionContext(self)
 
-    async def get_item(self, workspace_id: str, item_id: str) -> Optional[WorkItem]:
+    async def get_item(self, workspace_id: str, item_id: str) -> WorkItem | None:
         ws = self._items.get(workspace_id, {})
         item = ws.get(item_id)
         return copy.deepcopy(item) if item else None
@@ -80,12 +78,12 @@ class DatabaseSession:
     async def list_items(
         self,
         workspace_id: str,
-        status: Optional[ItemStatus] = None,
-        priority: Optional[ItemPriority] = None,
+        status: ItemStatus | None = None,
+        priority: ItemPriority | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> Tuple[List[WorkItem], Dict[str, Any]]:
-        t0 = dt.datetime.now(dt.timezone.utc)
+    ) -> tuple[list[WorkItem], dict[str, Any]]:
+        t0 = dt.datetime.now(dt.UTC)
         ws = self._items.get(workspace_id, {})
         results = list(ws.values())
 
@@ -99,7 +97,7 @@ class DatabaseSession:
         total = len(results)
         paginated = results[offset : offset + limit]
 
-        duration_ms = (dt.datetime.now(dt.timezone.utc) - t0).total_seconds() * 1000.0
+        duration_ms = (dt.datetime.now(dt.UTC) - t0).total_seconds() * 1000.0
         explain_plan = {
             "index_used": "idx_workspace_status_priority",
             "scan_type": "IndexScan",
@@ -114,7 +112,7 @@ class DatabaseSession:
         self,
         tx: TransactionContext,
         mutation: Mutation,
-    ) -> Tuple[WorkItem, CDCEvent]:
+    ) -> tuple[WorkItem, CDCEvent]:
         ws_id = mutation.workspace_id
         if ws_id not in self._items:
             self._items[ws_id] = {}
@@ -182,11 +180,16 @@ class DatabaseSession:
 
         # Apply patch updates
         for field, val in mutation.patch.items():
-            if hasattr(current, field) and field not in ("id", "workspace_id", "version", "created_at"):
+            if hasattr(current, field) and field not in (
+                "id",
+                "workspace_id",
+                "version",
+                "created_at",
+            ):
                 setattr(current, field, val)
 
         current.version += 1
-        current.updated_at = dt.datetime.now(dt.timezone.utc)
+        current.updated_at = dt.datetime.now(dt.UTC)
 
         cdc_event = CDCEvent(
             sequence_num=self._sequence_counter,
@@ -202,5 +205,5 @@ class DatabaseSession:
         tx.pending_outbox.append(cdc_event)
         return copy.deepcopy(current), cdc_event
 
-    async def get_outbox_events(self, since_seq: int = 0) -> List[CDCEvent]:
+    async def get_outbox_events(self, since_seq: int = 0) -> list[CDCEvent]:
         return [copy.deepcopy(x) for x in self._outbox if x.sequence_num > since_seq]

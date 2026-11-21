@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 import datetime as dt
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
+
 from workspace_sync_engine.models import CDCEvent, WorkItem
 
 
@@ -11,8 +11,8 @@ class MultiLevelCache:
 
     def __init__(self, default_ttl_sec: int = 300) -> None:
         self.default_ttl = default_ttl_sec
-        self._l1_items: Dict[str, Tuple[WorkItem, dt.datetime]] = {}  # key -> (item, expiry)
-        self._l2_store: Dict[str, Tuple[str, dt.datetime]] = {}  # simulated Redis KV
+        self._l1_items: dict[str, tuple[WorkItem, dt.datetime]] = {}  # key -> (item, expiry)
+        self._l2_store: dict[str, tuple[str, dt.datetime]] = {}  # simulated Redis KV
         self._hits = 0
         self._misses = 0
         self._invalidations = 0
@@ -23,9 +23,9 @@ class MultiLevelCache:
     def _collection_prefix(self, workspace_id: str) -> str:
         return f"ws:{workspace_id}:list:"
 
-    async def get_item(self, workspace_id: str, item_id: str) -> Optional[WorkItem]:
+    async def get_item(self, workspace_id: str, item_id: str) -> WorkItem | None:
         key = self._item_key(workspace_id, item_id)
-        now = dt.datetime.now(dt.timezone.utc)
+        now = dt.datetime.now(dt.UTC)
 
         # Check L1
         if key in self._l1_items:
@@ -52,7 +52,7 @@ class MultiLevelCache:
 
     async def put_item(self, workspace_id: str, item: WorkItem) -> None:
         key = self._item_key(workspace_id, item.id)
-        exp = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=self.default_ttl)
+        exp = dt.datetime.now(dt.UTC) + dt.timedelta(seconds=self.default_ttl)
         self._l1_items[key] = (item, exp)
         self._l2_store[key] = (item.model_dump_json(), exp)
 
@@ -78,7 +78,7 @@ class MultiLevelCache:
             self._invalidations += 1
 
     @property
-    def metrics(self) -> Dict[str, Any]:
+    def metrics(self) -> dict[str, Any]:
         total = self._hits + self._misses
         hit_ratio = (self._hits / total) if total > 0 else 0.0
         return {

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Dict, List, Optional, Tuple
+from typing import Any
 
 from workspace_sync_engine.models import (
-    Actor,
     ActorType,
     AuditEvent,
     Mutation,
@@ -15,7 +14,6 @@ from workspace_sync_engine.models import (
 
 class UnauthorizedAgentActionError(Exception):
     """Raised when an AI agent attempts a mutation without valid authority credentials."""
-    pass
 
 
 class DurableAuditLogger:
@@ -24,17 +22,17 @@ class DurableAuditLogger:
     GENESIS_HASH = "0" * 64
 
     def __init__(self) -> None:
-        self._chains: Dict[str, List[AuditEvent]] = {}  # workspace_id -> list of events
+        self._chains: dict[str, list[AuditEvent]] = {}  # workspace_id -> list of events
 
-    def _compute_hash(self, event_dict: Dict[str, Any], prev_hash: str) -> str:
+    def _compute_hash(self, event_dict: dict[str, Any], prev_hash: str) -> str:
         payload = f"{prev_hash}:{event_dict['event_id']}:{event_dict['workspace_id']}:{event_dict['item_id']}:{event_dict['actor_id']}:{event_dict['action']}:{json.dumps(event_dict['new_state'], sort_keys=True)}"
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def record_mutation(
         self,
         mutation: Mutation,
-        previous_item: Optional[WorkItem],
-        new_item: Optional[WorkItem],
+        previous_item: WorkItem | None,
+        new_item: WorkItem | None,
     ) -> AuditEvent:
         # Validate agent authority
         if mutation.actor.actor_type == ActorType.AGENT:
@@ -51,11 +49,7 @@ class DurableAuditLogger:
         if ws_id not in self._chains:
             self._chains[ws_id] = []
 
-        prev_hash = (
-            self._chains[ws_id][-1].curr_hash
-            if self._chains[ws_id]
-            else self.GENESIS_HASH
-        )
+        prev_hash = self._chains[ws_id][-1].curr_hash if self._chains[ws_id] else self.GENESIS_HASH
 
         event_id = f"aud_{mutation.mutation_id}"
         prev_state = previous_item.model_dump(mode="json") if previous_item else None
@@ -88,15 +82,13 @@ class DurableAuditLogger:
         self._chains[ws_id].append(audit_event)
         return audit_event
 
-    def get_audit_trail(
-        self, workspace_id: str, item_id: Optional[str] = None
-    ) -> List[AuditEvent]:
+    def get_audit_trail(self, workspace_id: str, item_id: str | None = None) -> list[AuditEvent]:
         chain = self._chains.get(workspace_id, [])
         if item_id:
             return [x for x in chain if x.item_id == item_id]
         return list(chain)
 
-    def verify_audit_chain(self, workspace_id: str) -> Tuple[bool, int, Optional[str]]:
+    def verify_audit_chain(self, workspace_id: str) -> tuple[bool, int, str | None]:
         """Verifies cryptographic hash chain integrity for the given workspace.
         Returns: (is_valid, record_count, broken_event_id_or_none)
         """

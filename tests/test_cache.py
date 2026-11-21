@@ -1,12 +1,10 @@
 import asyncio
-import pytest
+
 from workspace_sync_engine.cache import MultiLevelCache
 from workspace_sync_engine.engine import WorkspaceSyncEngine
 from workspace_sync_engine.models import (
     Actor,
     ActorType,
-    CDCEvent,
-    ItemStatus,
     Mutation,
     MutationType,
     WorkItem,

@@ -1,5 +1,6 @@
 import random
 import string
+
 from workspace_sync_engine.audit import DurableAuditLogger
 from workspace_sync_engine.models import (
     Actor,
@@ -10,7 +11,8 @@ from workspace_sync_engine.models import (
 )
 
 try:
-    from hypothesis import given, strategies as st
+    from hypothesis import given
+    from hypothesis import strategies as st
 
     @given(
         titles=st.lists(

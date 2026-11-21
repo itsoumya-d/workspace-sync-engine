@@ -1,12 +1,11 @@
 import asyncio
-import pytest
+
 from workspace_sync_engine.cdc import ChangeDataCaptureStreamer
 from workspace_sync_engine.db import DatabaseSession
 from workspace_sync_engine.engine import WorkspaceSyncEngine
 from workspace_sync_engine.models import (
     Actor,
     ActorType,
-    CDCEvent,
     Mutation,
     MutationType,
 )

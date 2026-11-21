@@ -1,4 +1,5 @@
 import pytest
+
 from workspace_sync_engine.audit import (
     DurableAuditLogger,
     UnauthorizedAgentActionError,
@@ -64,7 +65,9 @@ def test_tamper_detection_in_audit_chain():
     )
     logger.record_mutation(mut1, None, item1)
 
-    item2 = WorkItem(id="item_1", workspace_id="ws_audit", project_id="p1", title="Second", version=2)
+    item2 = WorkItem(
+        id="item_1", workspace_id="ws_audit", project_id="p1", title="Second", version=2
+    )
     mut2 = Mutation(
         mutation_id="m2",
         workspace_id="ws_audit",

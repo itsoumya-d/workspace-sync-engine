@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Callable, Coroutine, Dict, List, Optional, Set
+
 from workspace_sync_engine.db import DatabaseSession
 from workspace_sync_engine.models import CDCEvent
 
@@ -11,11 +11,11 @@ class ChangeDataCaptureStreamer:
 
     def __init__(self, db: DatabaseSession) -> None:
         self.db = db
-        self._subscribers: Dict[str, Set[asyncio.Queue[CDCEvent]]] = {}
-        self._global_subscribers: Set[asyncio.Queue[CDCEvent]] = set()
+        self._subscribers: dict[str, set[asyncio.Queue[CDCEvent]]] = {}
+        self._global_subscribers: set[asyncio.Queue[CDCEvent]] = set()
         self._last_processed_seq = 0
         self._running = False
-        self._poll_task: Optional[asyncio.Task[None]] = None
+        self._poll_task: asyncio.Task[None] | None = None
 
     async def start(self, poll_interval_ms: int = 20) -> None:
         self._running = True
@@ -30,7 +30,7 @@ class ChangeDataCaptureStreamer:
             except asyncio.CancelledError:
                 pass
 
-    def subscribe(self, workspace_id: Optional[str] = None) -> asyncio.Queue[CDCEvent]:
+    def subscribe(self, workspace_id: str | None = None) -> asyncio.Queue[CDCEvent]:
         queue: asyncio.Queue[CDCEvent] = asyncio.Queue(maxsize=1000)
         if workspace_id:
             if workspace_id not in self._subscribers:
@@ -40,7 +40,7 @@ class ChangeDataCaptureStreamer:
             self._global_subscribers.add(queue)
         return queue
 
-    def unsubscribe(self, queue: asyncio.Queue[CDCEvent], workspace_id: Optional[str] = None) -> None:
+    def unsubscribe(self, queue: asyncio.Queue[CDCEvent], workspace_id: str | None = None) -> None:
         if workspace_id and workspace_id in self._subscribers:
             self._subscribers[workspace_id].discard(queue)
         self._global_subscribers.discard(queue)

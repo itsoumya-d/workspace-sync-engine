@@ -1,6 +1,8 @@
 import asyncio
+
 import pytest
-from workspace_sync_engine.db import ConcurrencyConflictError, NotFoundError
+
+from workspace_sync_engine.db import ConcurrencyConflictError
 from workspace_sync_engine.engine import WorkspaceSyncEngine
 from workspace_sync_engine.models import (
     Actor,
@@ -30,7 +32,7 @@ def test_create_and_get_item():
             actor=actor,
         )
 
-        created, cdc_ev, audit_ev = await engine.apply_mutation(create_mut)
+        created, cdc_ev, _audit_ev = await engine.apply_mutation(create_mut)
         assert created.id == "item_1"
         assert created.version == 1
         assert created.title == "Setup PostgreSQL CDC"
@@ -128,7 +130,7 @@ def test_item_transition_and_audit():
             actor=agent,
             rationale="Automated triage detected active pg_stat_activity alert",
         )
-        updated, cdc, aud = await engine.apply_mutation(trans_mut)
+        updated, _cdc, aud = await engine.apply_mutation(trans_mut)
         assert updated.status == ItemStatus.IN_PROGRESS
         assert updated.version == 2
         assert aud.actor_type == ActorType.AGENT

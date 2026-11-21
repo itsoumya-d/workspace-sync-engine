@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import datetime as dt
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from workspace_sync_engine.audit import DurableAuditLogger
 from workspace_sync_engine.cache import MultiLevelCache
@@ -11,7 +10,6 @@ from workspace_sync_engine.cdc import ChangeDataCaptureStreamer
 from workspace_sync_engine.db import (
     ConcurrencyConflictError,
     DatabaseSession,
-    NotFoundError,
 )
 from workspace_sync_engine.models import (
     AuditEvent,
@@ -30,17 +28,17 @@ class WorkspaceSyncEngine:
 
     def __init__(
         self,
-        db: Optional[DatabaseSession] = None,
-        cache: Optional[MultiLevelCache] = None,
-        audit: Optional[DurableAuditLogger] = None,
-        cdc: Optional[ChangeDataCaptureStreamer] = None,
+        db: DatabaseSession | None = None,
+        cache: MultiLevelCache | None = None,
+        audit: DurableAuditLogger | None = None,
+        cdc: ChangeDataCaptureStreamer | None = None,
     ) -> None:
         self.db = db or DatabaseSession()
         self.cache = cache or MultiLevelCache()
         self.audit = audit or DurableAuditLogger()
         self.cdc = cdc or ChangeDataCaptureStreamer(self.db)
 
-    async def get_item(self, workspace_id: str, item_id: str) -> Optional[WorkItem]:
+    async def get_item(self, workspace_id: str, item_id: str) -> WorkItem | None:
         # Read-through cache
         cached = await self.cache.get_item(workspace_id, item_id)
         if cached:
@@ -55,11 +53,11 @@ class WorkspaceSyncEngine:
     async def list_items(
         self,
         workspace_id: str,
-        status: Optional[ItemStatus] = None,
-        priority: Optional[ItemPriority] = None,
+        status: ItemStatus | None = None,
+        priority: ItemPriority | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> Tuple[List[WorkItem], Dict[str, Any]]:
+    ) -> tuple[list[WorkItem], dict[str, Any]]:
         return await self.db.list_items(
             workspace_id=workspace_id,
             status=status,
@@ -73,10 +71,10 @@ class WorkspaceSyncEngine:
         mutation: Mutation,
         max_retries: int = 3,
         backoff_base_ms: int = 15,
-    ) -> Tuple[WorkItem, CDCEvent, AuditEvent]:
+    ) -> tuple[WorkItem, CDCEvent, AuditEvent]:
         """Atomically applies a mutation with optimistic concurrency, outbox CDC, cache invalidation, and audit."""
         attempts = 0
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         while attempts < max_retries:
             attempts += 1
@@ -113,18 +111,16 @@ class WorkspaceSyncEngine:
 
         raise last_error or ConcurrencyConflictError("Max retries exceeded on mutation")
 
-    def get_audit_trail(
-        self, workspace_id: str, item_id: Optional[str] = None
-    ) -> List[AuditEvent]:
+    def get_audit_trail(self, workspace_id: str, item_id: str | None = None) -> list[AuditEvent]:
         return self.audit.get_audit_trail(workspace_id, item_id)
 
-    def verify_audit_integrity(self, workspace_id: str) -> Tuple[bool, int, Optional[str]]:
+    def verify_audit_integrity(self, workspace_id: str) -> tuple[bool, int, str | None]:
         return self.audit.verify_audit_chain(workspace_id)
 
-    def subscribe_cdc(self, workspace_id: Optional[str] = None) -> asyncio.Queue[CDCEvent]:
+    def subscribe_cdc(self, workspace_id: str | None = None) -> asyncio.Queue[CDCEvent]:
         return self.cdc.subscribe(workspace_id)
 
     def unsubscribe_cdc(
-        self, queue: asyncio.Queue[CDCEvent], workspace_id: Optional[str] = None
+        self, queue: asyncio.Queue[CDCEvent], workspace_id: str | None = None
     ) -> None:
         self.cdc.unsubscribe(queue, workspace_id)
