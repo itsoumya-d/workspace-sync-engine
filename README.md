@@ -54,6 +54,13 @@ flowchart TD
 
 ---
 
+### 1.1 Delta Lake & Lakehouse Medallion Pipeline
+
+To support analytical and downstream AI feature extraction, the engine streams CDC outbox events into a Delta Lake Medallion architecture:
+- **Bronze Layer**: Append-only immutable event store partitioned by ingestion date, capturing raw payload, sequence number, and source timestamps.
+- **Silver Layer**: Conformed entity store updated via Delta MERGE semantics (upserts and tombstone deletes) with monotonic sequence resolution and a Dead Letter Queue (DLQ) for corrupt payloads.
+- **Gold Layer**: Aggregated real-time workspace metrics including active/closed item velocity and human vs. autonomous agent mutation distribution.
+
 ## 2. Key Features
 
 - **Transactional Outbox for CDC**: State changes and CDC events are committed atomically, preventing lost updates or ghost notifications.

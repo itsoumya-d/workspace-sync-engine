@@ -10,6 +10,13 @@ from workspace_sync_engine.db import (
     TransactionContext,
 )
 from workspace_sync_engine.engine import WorkspaceSyncEngine
+from workspace_sync_engine.lakehouse import (
+    BronzeRecord,
+    DataQualityReport,
+    GoldMetrics,
+    LakehouseMedallionSink,
+    SilverRecord,
+)
 from workspace_sync_engine.models import (
     Actor,
     ActorType,
@@ -26,17 +33,22 @@ __all__ = [
     "Actor",
     "ActorType",
     "AuditEvent",
+    "BronzeRecord",
     "CDCEvent",
     "ChangeDataCaptureStreamer",
     "ConcurrencyConflictError",
+    "DataQualityReport",
     "DatabaseSession",
     "DurableAuditLogger",
+    "GoldMetrics",
     "ItemPriority",
     "ItemStatus",
+    "LakehouseMedallionSink",
     "MultiLevelCache",
     "Mutation",
     "MutationType",
     "NotFoundError",
+    "SilverRecord",
     "TransactionContext",
     "UnauthorizedAgentActionError",
     "WorkItem",
